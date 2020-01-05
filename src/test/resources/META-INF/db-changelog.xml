@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd
+        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+  <changeSet id="test_tables" author="everit">
+    <createTable tableName="table_a">
+      <column name="table_a_id" type="bigint">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="table_a_vc" type="varchar(2000)" />
+    </createTable>
+
+    <createTable tableName="table_b">
+      <column name="table_b_id" type="bigint">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="table_b_vc" type="varchar(2000)" />
+      <column name="table_a_id" type="bigint">
+        <constraints referencedTableName="table_a" referencedColumnNames="table_a_id"
+          foreignKeyName="fk_table_b_a" />
+      </column>
+    </createTable>
+
+    <createTable tableName="table_c">
+      <column name="table_c_id" type="bigint">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="table_c_vc" type="varchar(2000)" />
+      <column name="table_b_id" type="bigint">
+        <constraints referencedTableName="table_b" referencedColumnNames="table_b_id"
+          foreignKeyName="fk_table_c_b" />
+      </column>
+    </createTable>
+  </changeSet>
+
+</databaseChangeLog>
