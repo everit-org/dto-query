@@ -1,11 +1,10 @@
 package org.everit.persistence.querydsl.dtoquery;
 
+import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 
 import com.querydsl.sql.SQLQuery;
@@ -21,7 +20,7 @@ public class DTOQuery<RK, T> {
     return new DTOQuery<>(queryGenerator);
   }
 
-  protected Map<String, DTOQuery<?, ?>> propertyQueries = new HashMap<>();
+  protected List<PropertyQuery<T, ?, ?>> propertyQueries = new ArrayList<>();
 
   protected Function<Collection<RK>, SQLQuery<T>> queryGenerator;
 
@@ -29,16 +28,15 @@ public class DTOQuery<RK, T> {
     this.queryGenerator = queryGenerator;
   }
 
-  public <P, K> DTOQuery<RK, T> propertyByQuery(String propertyName,
-      DTOQuery<P, K> propertyDTOQuery) {
+  public <P, K> DTOQuery<RK, T> prop(PropertyQuery<T, ?, ?> propertyQuery) {
 
-    this.propertyQueries.put(propertyName, propertyDTOQuery);
+    this.propertyQueries.add(propertyQuery);
     return this;
   }
 
-  public Collection<T> queryDTO() {
+  public Collection<T> queryDTO(Connection connection) {
     SQLQuery<T> query = this.queryGenerator.apply(Collections.emptyList());
-    List<T> resultSet = query.fetch();
+    List<T> resultSet = query.clone(connection).fetch();
 
     queryDTOProperties(resultSet);
 
@@ -47,20 +45,13 @@ public class DTOQuery<RK, T> {
 
   protected void queryDTOProperties(Collection<T> resultSet) {
 
-    for (Entry<String, DTOQuery<?, ?>> propQueryEntry : this.propertyQueries.entrySet()) {
-      String propertyName = propQueryEntry.getKey();
-      DTOQuery<?, ?> propDTOQuery = propQueryEntry.getValue();
-
-      queryDTOProperty(resultSet, propertyName, propDTOQuery);
+    for (PropertyQuery<T, ?, ?> propertyQuery : this.propertyQueries) {
+      queryDTOProperty(resultSet, propertyQuery);
     }
-
   }
 
-  protected void queryDTOProperty(Collection<T> resultSet, String propertyName,
-      DTOQuery<?, ?> propDTOQuery) {
-
-    propDTOQuery.queryGenerator.apply(resultSet);
-    // TODO Auto-generated method stub
+  protected <FK, P> void queryDTOProperty(Collection<T> resultSet,
+      PropertyQuery<T, FK, P> propertyQuery) {
 
   }
 
