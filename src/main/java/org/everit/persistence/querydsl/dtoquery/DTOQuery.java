@@ -16,19 +16,19 @@ import com.querydsl.sql.SQLQuery;
  */
 public class DTOQuery<FK, T> {
 
-  public static <FK, T> DTOQuery<FK, T> byQuery(
+  /**
+   * Helper method to be able to write simpler code. If the constructor was used, the type
+   * parameters should be defined.
+   */
+  public static <FK, T> DTOQuery<FK, T> create(
       Function<Collection<FK>, SQLQuery<T>> queryGenerator) {
 
-    return new DTOQuery<>(queryGenerator);
+    return new DTOQuery<FK, T>().queryGenerator(queryGenerator);
   }
 
   protected List<PropertyQuery<T, ?, ?>> propertyQueries = new ArrayList<>();
 
   protected Function<Collection<FK>, SQLQuery<T>> queryGenerator;
-
-  public DTOQuery(Function<Collection<FK>, SQLQuery<T>> queryGenerator) {
-    this.queryGenerator = queryGenerator;
-  }
 
   public <P, K> DTOQuery<FK, T> prop(PropertyQuery<T, ?, ?> propertyQuery) {
 
@@ -74,6 +74,11 @@ public class DTOQuery<FK, T> {
     }
 
     setPropertiesInDTOs(dtosByForeignKeys, propertyCollectionByForeignKeyMap, propertyQuery);
+  }
+
+  public DTOQuery<FK, T> queryGenerator(Function<Collection<FK>, SQLQuery<T>> queryGenerator) {
+    this.queryGenerator = queryGenerator;
+    return this;
   }
 
   protected <PFK, P> void setPropertiesInDTOs(Map<PFK, T> dtosByForeignKeys,

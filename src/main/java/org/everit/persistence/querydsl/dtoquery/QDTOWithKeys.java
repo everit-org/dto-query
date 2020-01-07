@@ -1,14 +1,15 @@
 package org.everit.persistence.querydsl.dtoquery;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.FactoryExpression;
-import com.querydsl.core.types.HashCodeVisitor;
-import com.querydsl.core.types.Templates;
-import com.querydsl.core.types.ToStringVisitor;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.QTuple;
 import com.querydsl.core.types.Visitor;
 
 public class QDTOWithKeys<T>
@@ -16,15 +17,19 @@ public class QDTOWithKeys<T>
 
   private static final long serialVersionUID = -8947639515013490017L;
 
-  @Nullable
-  private transient volatile Integer hashCode;
+  private final List<Expression<?>> args;
 
-  @Nullable
-  private transient volatile String toString;
+  private final FactoryExpression<T> beanExpression;
+
+  private final QTuple keysQTuple;
 
   public QDTOWithKeys(FactoryExpression<T> beanExpression, Expression<?>... keys) {
+    this.beanExpression = beanExpression;
+    this.keysQTuple = Projections.tuple(keys);
 
-    // TODO Auto-generated constructor stub
+    ArrayList<Expression<?>> args = new ArrayList<>(beanExpression.getArgs());
+    args.addAll(Arrays.asList(keys));
+    this.args = Collections.unmodifiableList(args);
   }
 
   @Override
@@ -34,8 +39,7 @@ public class QDTOWithKeys<T>
 
   @Override
   public List<Expression<?>> getArgs() {
-    // TODO Auto-generated method stub
-    return null;
+    return this.args;
   }
 
   @SuppressWarnings("unchecked")
@@ -45,25 +49,26 @@ public class QDTOWithKeys<T>
   }
 
   @Override
-  public final int hashCode() {
-    if (this.hashCode == null) {
-      this.hashCode = accept(HashCodeVisitor.DEFAULT, null);
-    }
-    return this.hashCode;
-  }
-
-  @Override
   public DTOWithKeys<T> newInstance(Object... args) {
-    // TODO Auto-generated method stub
-    return null;
+
+    int beanPropCount = this.beanExpression.getArgs().size();
+
+    Object[] argsOfDTO = Arrays.copyOf(args, beanPropCount);
+    T dto = this.beanExpression.newInstance(argsOfDTO);
+
+    Tuple keys = this.keysQTuple.newInstance(Arrays.copyOfRange(args, beanPropCount, args.length));
+
+    DTOWithKeys<T> result = new DTOWithKeys<>();
+    result.dto = dto;
+    result.keys = keys;
+
+    return result;
   }
 
   @Override
-  public final String toString() {
-    if (this.toString == null) {
-      this.toString = accept(ToStringVisitor.DEFAULT, Templates.DEFAULT);
-    }
-    return this.toString;
+  public String toString() {
+    return "QDTOWithKeys [beanExpression=" + this.beanExpression + ", keyQTuple=" + this.keysQTuple
+        + "]";
   }
 
 }

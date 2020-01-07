@@ -170,7 +170,7 @@ public class DTOQueryTest {
       QTableC tableC = QTableC.tableC;
 
       DTOQuery<Object, TableADTO> dtoQuery = DTOQuery
-          .byQuery((fks) -> new SQLQuery<>()
+          .create((fks) -> new SQLQuery<>()
               .select(Projections.fields(TableADTO.class, tableA.all()))
               .from(tableA)
               .orderBy(tableA.tableAId.asc()))
@@ -180,7 +180,7 @@ public class DTOQueryTest {
               .keyInSourceResolver((tableADTO) -> tableADTO.tableAId)
               .keyInPropertyResolver((tableBDTO) -> tableBDTO.tableAId)
               .dtoQuery(DTOQuery
-                  .byQuery((Collection<Long> fks) -> new SQLQuery<>()
+                  .create((Collection<Long> fks) -> new SQLQuery<>()
                       .select(Projections.fields(TableBDTO.class, tableB.all()))
                       .from(tableB)
                       .where(tableB.tableAId.in(fks))
@@ -190,7 +190,7 @@ public class DTOQueryTest {
                       .oneToManySetter((bDTO, cDTOList) -> bDTO.tableCList = cDTOList)
                       .keyInSourceResolver(bDTO -> bDTO.tableBId)
                       .keyInPropertyResolver((cDTO) -> cDTO.tableBId)
-                      .dtoQuery(DTOQuery.byQuery(fks -> new SQLQuery<>()
+                      .dtoQuery(DTOQuery.create(fks -> new SQLQuery<>()
                           .select(Projections.fields(TableCDTO.class, tableC.all()))
                           .from(tableC)
                           .where(tableC.tableBId.in(fks))

@@ -4,7 +4,7 @@ import com.querydsl.core.Tuple;
 
 public class DTOWithKeys<T> {
 
-  public T bean;
+  public T dto;
 
   public Tuple keys;
 
