@@ -6,39 +6,19 @@ import java.util.function.Function;
 
 public class PropertyQuery<T, FK, P> {
 
-  private DTOQuery<FK, P> dtoQuery;
+  protected DTOQuery<FK, P> dtoQuery;
 
-  private Function<P, FK> keyInPropertyResolver;
+  protected Function<P, FK> keyInPropertyResolver;
 
-  private Function<T, FK> keyInSourceResolver;
+  protected Function<T, FK> keyInSourceResolver;
 
-  private BiConsumer<T, Collection<P>> oneToManySetter;
+  protected BiConsumer<T, Collection<P>> oneToManySetter;
 
-  private BiConsumer<T, P> setter;
+  protected BiConsumer<T, P> setter;
 
   public PropertyQuery<T, FK, P> dtoQuery(DTOQuery<FK, P> dtoQuery) {
     this.dtoQuery = dtoQuery;
     return this;
-  }
-
-  public DTOQuery<FK, P> getDtoQuery() {
-    return this.dtoQuery;
-  }
-
-  public Function<P, FK> getKeyInPropertyResolver() {
-    return this.keyInPropertyResolver;
-  }
-
-  public Function<T, FK> getKeyInSourceResolver() {
-    return this.keyInSourceResolver;
-  }
-
-  public BiConsumer<T, Collection<P>> getOneToManySetter() {
-    return this.oneToManySetter;
-  }
-
-  public BiConsumer<T, P> getSetter() {
-    return this.setter;
   }
 
   public PropertyQuery<T, FK, P> keyInPropertyResolver(Function<P, FK> keyInPropertyResolver) {
@@ -52,12 +32,20 @@ public class PropertyQuery<T, FK, P> {
   }
 
   public PropertyQuery<T, FK, P> oneToManySetter(BiConsumer<T, Collection<P>> oneToManySetter) {
+    if (this.setter != null) {
+      throw new IllegalArgumentException(
+          "Setter and oneToManySetter cannot be specified at the same time");
+    }
     this.oneToManySetter = oneToManySetter;
     return this;
 
   }
 
   public PropertyQuery<T, FK, P> setter(BiConsumer<T, P> setter) {
+    if (this.oneToManySetter != null) {
+      throw new IllegalArgumentException(
+          "Setter and oneToManySetter cannot be specified at the same time");
+    }
     this.setter = setter;
     return this;
   }

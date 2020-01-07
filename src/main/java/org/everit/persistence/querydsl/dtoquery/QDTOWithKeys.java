@@ -11,8 +11,8 @@ import com.querydsl.core.types.Templates;
 import com.querydsl.core.types.ToStringVisitor;
 import com.querydsl.core.types.Visitor;
 
-public class QBeanWithKeys<T>
-    implements Expression<BeanWithKeys<T>>, FactoryExpression<BeanWithKeys<T>> {
+public class QDTOWithKeys<T>
+    implements Expression<DTOWithKeys<T>>, FactoryExpression<DTOWithKeys<T>> {
 
   private static final long serialVersionUID = -8947639515013490017L;
 
@@ -22,7 +22,7 @@ public class QBeanWithKeys<T>
   @Nullable
   private transient volatile String toString;
 
-  public QBeanWithKeys(FactoryExpression<T> beanExpression, Expression<?>... keys) {
+  public QDTOWithKeys(FactoryExpression<T> beanExpression, Expression<?>... keys) {
 
     // TODO Auto-generated constructor stub
   }
@@ -40,8 +40,8 @@ public class QBeanWithKeys<T>
 
   @SuppressWarnings("unchecked")
   @Override
-  public Class<? extends BeanWithKeys<T>> getType() {
-    return (Class<? extends BeanWithKeys<T>>) BeanWithKeys.class;
+  public Class<? extends DTOWithKeys<T>> getType() {
+    return (Class<? extends DTOWithKeys<T>>) DTOWithKeys.class;
   }
 
   @Override
@@ -53,7 +53,7 @@ public class QBeanWithKeys<T>
   }
 
   @Override
-  public BeanWithKeys<T> newInstance(Object... args) {
+  public DTOWithKeys<T> newInstance(Object... args) {
     // TODO Auto-generated method stub
     return null;
   }
