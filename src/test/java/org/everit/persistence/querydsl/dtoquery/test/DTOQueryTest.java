@@ -2,7 +2,6 @@ package org.everit.persistence.querydsl.dtoquery.test;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import org.everit.persistence.querydsl.dtoquery.DTOQuery;
@@ -159,7 +158,7 @@ public class DTOQueryTest {
   }
 
   @Test
-  public void t01_testQueryDTO() {
+  public void t01_testQueryDTOLowLevel() {
     Collection<TableADTO> testData = createTestData();
     storeTestData(testData);
 
@@ -170,15 +169,15 @@ public class DTOQueryTest {
       QTableC tableC = QTableC.tableC;
 
       DTOQuery<Object, TableADTO> dtoQuery = DTOQuery
-          .create((fks) -> new SQLQuery<>()
+          .root(new SQLQuery<>()
               .select(Projections.fields(TableADTO.class, tableA.all()))
               .from(tableA)
               .orderBy(tableA.tableAId.asc()))
 
           .prop(new PropertyQuery<TableADTO, Long, TableBDTO>()
               .oneToManySetter((aDTO, bDTOList) -> aDTO.tableBList = bDTOList)
-              .keyInSourceResolver((tableADTO) -> tableADTO.tableAId)
-              .keyInPropertyResolver((tableBDTO) -> tableBDTO.tableAId)
+              .keyInSourceDTOResolver((tableADTO) -> tableADTO.tableAId)
+              .keyInPropertyDTOResolver((tableBDTO) -> tableBDTO.tableAId)
               .dtoQuery(DTOQuery
                   .create((Collection<Long> fks) -> new SQLQuery<>()
                       .select(Projections.fields(TableBDTO.class, tableB.all()))
@@ -188,20 +187,53 @@ public class DTOQueryTest {
 
                   .prop(new PropertyQuery<TableBDTO, Long, TableCDTO>()
                       .oneToManySetter((bDTO, cDTOList) -> bDTO.tableCList = cDTOList)
-                      .keyInSourceResolver(bDTO -> bDTO.tableBId)
-                      .keyInPropertyResolver((cDTO) -> cDTO.tableBId)
+                      .keyInSourceDTOResolver(bDTO -> bDTO.tableBId)
+                      .keyInPropertyDTOResolver((cDTO) -> cDTO.tableBId)
                       .dtoQuery(DTOQuery.create(fks -> new SQLQuery<>()
                           .select(Projections.fields(TableCDTO.class, tableC.all()))
                           .from(tableC)
                           .where(tableC.tableBId.in(fks))
                           .orderBy(tableC.tableCId.asc()))))));
 
-      Collection<TableADTO> tableACollection =
-          dtoQuery.queryDTO(connection, Collections.emptySet());
+      Collection<TableADTO> tableACollection = dtoQuery.queryDTO(connection);
 
       Assert.assertEquals(testData.toString(), tableACollection.toString());
 
     });
-
   }
+
+  @Test
+  public void t02_testQueryDTORootFullTable() {
+    Collection<TableADTO> testData = createTestData();
+    storeTestData(testData);
+
+    DTOQueryTest.qdsl.execute((connection, configuration) -> {
+
+      QTableA tableA = QTableA.tableA;
+      QTableB tableB = QTableB.tableB;
+      QTableC tableC = QTableC.tableC;
+
+      DTOQuery<Object, TableADTO> dtoQuery = DTOQuery
+          .rootDTOFullTable(configuration, tableA, TableADTO.class)
+
+          .prop(new PropertyQuery<TableADTO, Long, TableBDTO>()
+              .oneToManySetter((aDTO, bDTOList) -> aDTO.tableBList = bDTOList)
+              .keyInSourceDTOResolver((tableADTO) -> tableADTO.tableAId)
+              .keyInPropertyDTOResolver((tableBDTO) -> tableBDTO.tableAId)
+              .dtoQuery(
+                  DTOQuery.dtoFullTable(configuration, tableB, TableBDTO.class, tableB.tableAId)
+                      .prop(new PropertyQuery<TableBDTO, Long, TableCDTO>()
+                          .oneToManySetter((bDTO, cDTOList) -> bDTO.tableCList = cDTOList)
+                          .keyInSourceDTOResolver(bDTO -> bDTO.tableBId)
+                          .keyInPropertyDTOResolver((cDTO) -> cDTO.tableBId)
+                          .dtoQuery(DTOQuery.dtoFullTable(configuration, tableC, TableCDTO.class,
+                              tableC.tableBId)))));
+
+      Collection<TableADTO> tableACollection = dtoQuery.queryDTO(connection);
+
+      Assert.assertEquals(testData.toString(), tableACollection.toString());
+
+    });
+  }
+
 }

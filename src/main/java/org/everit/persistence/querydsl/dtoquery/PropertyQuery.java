@@ -10,7 +10,7 @@ public class PropertyQuery<T, FK, P> {
 
   protected Function<P, FK> keyInPropertyResolver;
 
-  protected Function<T, FK> keyInSourceResolver;
+  protected Function<T, FK> keyInSourceDTOResolver;
 
   protected BiConsumer<T, Collection<P>> oneToManySetter;
 
@@ -21,13 +21,13 @@ public class PropertyQuery<T, FK, P> {
     return this;
   }
 
-  public PropertyQuery<T, FK, P> keyInPropertyResolver(Function<P, FK> keyInPropertyResolver) {
+  public PropertyQuery<T, FK, P> keyInPropertyDTOResolver(Function<P, FK> keyInPropertyResolver) {
     this.keyInPropertyResolver = keyInPropertyResolver;
     return this;
   }
 
-  public PropertyQuery<T, FK, P> keyInSourceResolver(Function<T, FK> keyInSourceResolver) {
-    this.keyInSourceResolver = keyInSourceResolver;
+  public PropertyQuery<T, FK, P> keyInSourceDTOResolver(Function<T, FK> keyInSourceResolver) {
+    this.keyInSourceDTOResolver = keyInSourceResolver;
     return this;
   }
 
