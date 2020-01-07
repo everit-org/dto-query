@@ -33,9 +33,32 @@ import com.querydsl.sql.SQLQuery;
 
 /**
  * Queries a DTO class.
+ *
+ * @param <T>
+ *          Type of the DTO.
+ * @param <FK>
+ *          Type of the foreign key
  */
 public class DTOQuery<FK, T> {
 
+  /**
+   * Helper method to create a DTOQuery using setters and selecting all fields from the table as is.
+   *
+   * @param <FK>
+   *          The type of the foreign key if the dtoQuery is called as a property selector of
+   *          another DTO.
+   * @param <T>
+   *          The type of the DTO.
+   * @param configuration
+   *          The Querydsl configuration.
+   * @param qTable
+   *          The Querydsl Q class of the table.
+   * @param dtoType
+   *          The type of the DTO that should be instantiated.
+   * @param foreignKeyPath
+   *          The path to the foreign key in the generated SQL.
+   * @return The {@link DTOQuery} instance that can be further configured.
+   */
   public static <FK, T> DTOQuery<FK, T> beanFullTable(Configuration configuration,
       RelationalPathBase<?> qTable, Class<T> dtoType, SimpleExpression<FK> foreignKeyPath) {
 
@@ -55,6 +78,25 @@ public class DTOQuery<FK, T> {
     return new DTOQuery<FK, T>().queryGenerator(queryGenerator);
   }
 
+  /**
+   * Helper method to create a DTOQuery using public member variable access and selecting all fields
+   * from the table as is.
+   *
+   * @param <FK>
+   *          The type of the foreign key if the dtoQuery is called as a property selector of
+   *          another DTO.
+   * @param <T>
+   *          The type of the DTO.
+   * @param configuration
+   *          The Querydsl configuration.
+   * @param qTable
+   *          The Querydsl Q class of the table.
+   * @param dtoType
+   *          The type of the DTO that should be instantiated.
+   * @param foreignKeyPath
+   *          The path to the foreign key in the generated SQL.
+   * @return The {@link DTOQuery} instance that can be further configured.
+   */
   public static <FK, T> DTOQuery<FK, T> dtoFullTable(Configuration configuration,
       RelationalPathBase<?> qTable, Class<T> dtoType, SimpleExpression<FK> foreignKeyPath) {
 
@@ -77,6 +119,20 @@ public class DTOQuery<FK, T> {
     return new DTOQuery<Object, T>().queryGenerator((fks) -> query);
   }
 
+  /**
+   * Helper method to create a DTOQuery using setters and selecting all fields from the table as is.
+   * This function can be used to select the root DTOs.
+   *
+   * @param <T>
+   *          The type of the DTO.
+   * @param configuration
+   *          The Querydsl configuration.
+   * @param qTable
+   *          The Querydsl Q class of the table.
+   * @param dtoType
+   *          The type of the DTO that should be instantiated.
+   * @return The {@link DTOQuery} instance that can be further configured.
+   */
   public static <T> DTOQuery<Object, T> rootBeanFullTable(
       Configuration configuration, RelationalPathBase<?> qTable,
       Class<T> dtoType) {
@@ -86,6 +142,20 @@ public class DTOQuery<FK, T> {
             .from(qTable));
   }
 
+  /**
+   * Helper method to create a DTOQuery using public member variable access and selecting all fields
+   * from the table as is. This function can be used to select the root DTOs.
+   *
+   * @param <T>
+   *          The type of the DTO.
+   * @param configuration
+   *          The Querydsl configuration.
+   * @param qTable
+   *          The Querydsl Q class of the table.
+   * @param dtoType
+   *          The type of the DTO that should be instantiated.
+   * @return The {@link DTOQuery} instance that can be further configured.
+   */
   public static <T> DTOQuery<Object, T> rootDTOFullTable(
       Configuration configuration, RelationalPathBase<?> qTable,
       Class<T> dtoType) {
@@ -95,9 +165,9 @@ public class DTOQuery<FK, T> {
             .from(qTable));
   }
 
-  protected List<PropertyQuery<T, ?, ?>> propertyQueries = new ArrayList<>();
+  private List<PropertyQuery<T, ?, ?>> propertyQueries = new ArrayList<>();
 
-  protected Function<Collection<FK>, SQLQuery<T>> queryGenerator;
+  private Function<Collection<FK>, SQLQuery<T>> queryGenerator;
 
   /**
    * Adds a property query to this DTO so the given property will be queried after all DTOs by this
@@ -119,11 +189,27 @@ public class DTOQuery<FK, T> {
     return this;
   }
 
+  /**
+   * Runs the query on the database.
+   *
+   * @param connection
+   *          The database connection.
+   * @return Collection of DTOs.
+   */
   public Collection<T> queryDTO(Connection connection) {
     return this.queryDTO(connection, Collections.emptySet());
   }
 
-  protected Collection<T> queryDTO(Connection connection, Collection<FK> foreignKeys) {
+  /**
+   * Queries the set of DTOs by filtering the specific foreign keys.
+   *
+   * @param connection
+   *          The database connection.
+   * @param foreignKeys
+   *          The foreign keys to filter in the query.
+   * @return The collection of DTOs that were pulled out from the database.
+   */
+  Collection<T> queryDTO(Connection connection, Collection<FK> foreignKeys) {
     SQLQuery<T> query = this.queryGenerator.apply(foreignKeys);
     List<T> resultSet = query.clone(connection).fetch();
 
@@ -132,14 +218,14 @@ public class DTOQuery<FK, T> {
     return resultSet;
   }
 
-  protected void queryDTOProperties(Connection connection, Collection<T> resultSet) {
+  private void queryDTOProperties(Connection connection, Collection<T> resultSet) {
 
     for (PropertyQuery<T, ?, ?> propertyQuery : this.propertyQueries) {
       queryDTOProperty(connection, resultSet, propertyQuery);
     }
   }
 
-  protected <PFK, P> void queryDTOProperty(Connection connection, Collection<T> dtos,
+  private <PFK, P> void queryDTOProperty(Connection connection, Collection<T> dtos,
       PropertyQuery<T, PFK, P> propertyQuery) {
 
     Map<PFK, T> dtosByForeignKeys = new HashMap<>();
@@ -177,7 +263,7 @@ public class DTOQuery<FK, T> {
     return this;
   }
 
-  protected <PFK, P> void setPropertiesInDTOs(Map<PFK, T> dtosByForeignKeys,
+  private <PFK, P> void setPropertiesInDTOs(Map<PFK, T> dtosByForeignKeys,
       Map<PFK, Collection<P>> propertyCollectionByForeignKeyMap,
       PropertyQuery<T, PFK, P> propertyQuery) {
 

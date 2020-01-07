@@ -27,6 +27,13 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.QTuple;
 import com.querydsl.core.types.Visitor;
 
+/**
+ * Helper class to select a DTO and additional fields from the database as Tuple. This can be useful
+ * if the selected property DTO or the source DTO class would not contain the foreign key.
+ *
+ * @param <T>
+ *          The type of the DTO.
+ */
 public class QDTOWithKeys<T>
     implements Expression<DTOWithKeys<T>>, FactoryExpression<DTOWithKeys<T>> {
 
@@ -38,6 +45,15 @@ public class QDTOWithKeys<T>
 
   private final QTuple keysQTuple;
 
+  /**
+   * Constructor.
+   *
+   * @param beanExpression
+   *          The expression to select the DTO. Probably created with Projections.fields() or
+   *          Projections.bean() method.
+   * @param keys
+   *          The additional keys that should be selected as a Tuple.
+   */
   public QDTOWithKeys(FactoryExpression<T> beanExpression, Expression<?>... keys) {
     this.beanExpression = beanExpression;
     this.keysQTuple = Projections.tuple(keys);

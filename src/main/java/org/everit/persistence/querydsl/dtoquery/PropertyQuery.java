@@ -19,6 +19,16 @@ import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+/**
+ * The programmer can use this class to select a DTO property within a DTO.
+ *
+ * @param <T>
+ *          The type of the source DTO.
+ * @param <FK>
+ *          The foreign key type that connects the source DTO and its property.
+ * @param <P>
+ *          The type of the property DTO.
+ */
 public class PropertyQuery<T, FK, P> {
 
   protected DTOQuery<FK, P> dtoQuery;
@@ -46,6 +56,15 @@ public class PropertyQuery<T, FK, P> {
     return this;
   }
 
+  /**
+   * Specifies the setter for one-to-many relationships as a lambda expression (functional
+   * interface) that sets the property in the DTO. Either {@link #setter(BiConsumer)} or
+   * {@link #oneToManySetter(BiConsumer)} should be used.
+   *
+   * @param oneToManySetter
+   *          The setter function to set the collection property in the DTO.
+   * @return This object instance.
+   */
   public PropertyQuery<T, FK, P> oneToManySetter(BiConsumer<T, Collection<P>> oneToManySetter) {
     if (this.setter != null) {
       throw new IllegalArgumentException(
@@ -56,6 +75,15 @@ public class PropertyQuery<T, FK, P> {
 
   }
 
+  /**
+   * Specifies the setter as a lambda expression (functional interface) that sets the property in
+   * the DTO. Either {@link #setter(BiConsumer)} or {@link #oneToManySetter(BiConsumer)} should be
+   * used.
+   *
+   * @param setter
+   *          The setter function to set the property in the DTO.
+   * @return This object instance.
+   */
   public PropertyQuery<T, FK, P> setter(BiConsumer<T, P> setter) {
     if (this.oneToManySetter != null) {
       throw new IllegalArgumentException(

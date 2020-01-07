@@ -17,6 +17,14 @@ package org.everit.persistence.querydsl.dtoquery;
 
 import com.querydsl.core.Tuple;
 
+/**
+ * Helper class to select a DTO with additional keys. The {@link QDTOWithKeys} class can be used in
+ * an SQLQuery to select this type of instances. Selecting additional keys can be useful if the
+ * selected property DTO or the source DTO class would not contain the foreign key.
+ *
+ * @param <T>
+ *          The type of the DTO.
+ */
 public class DTOWithKeys<T> {
 
   public T dto;
