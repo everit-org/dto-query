@@ -26,6 +26,7 @@ import com.querydsl.core.types.FactoryExpression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.QTuple;
 import com.querydsl.core.types.Visitor;
+import com.querydsl.core.types.dsl.SimpleExpression;
 
 /**
  * Helper class to select a DTO and additional fields from the database as Tuple. This can be useful
@@ -45,6 +46,8 @@ public class QDTOWithKeys<T>
 
   private final QTuple keysQTuple;
 
+  private final SimpleExpression<T> simpleExpression;
+
   /**
    * Constructor.
    *
@@ -56,9 +59,30 @@ public class QDTOWithKeys<T>
    */
   public QDTOWithKeys(FactoryExpression<T> beanExpression, Expression<?>... keys) {
     this.beanExpression = beanExpression;
+    this.simpleExpression = null;
+
     this.keysQTuple = Projections.tuple(keys);
 
     ArrayList<Expression<?>> args = new ArrayList<>(beanExpression.getArgs());
+    args.addAll(Arrays.asList(keys));
+    this.args = Collections.unmodifiableList(args);
+  }
+
+  /**
+   * Constructor.
+   *
+   * @param simpleExpression
+   *          The expression to select a simple value.
+   * @param keys
+   *          The additional keys that should be selected as a Tuple.
+   */
+  public QDTOWithKeys(SimpleExpression<T> simpleExpression, Expression<?>... keys) {
+    this.beanExpression = null;
+    this.simpleExpression = simpleExpression;
+
+    this.keysQTuple = Projections.tuple(keys);
+    List<Expression<?>> args = new ArrayList<>();
+    args.add(simpleExpression);
     args.addAll(Arrays.asList(keys));
     this.args = Collections.unmodifiableList(args);
   }
@@ -82,10 +106,12 @@ public class QDTOWithKeys<T>
   @Override
   public DTOWithKeys<T> newInstance(Object... args) {
 
-    int beanPropCount = this.beanExpression.getArgs().size();
+    int beanPropCount = this.beanExpression != null ? this.beanExpression.getArgs().size() : 1;
 
     Object[] argsOfDTO = Arrays.copyOf(args, beanPropCount);
-    T dto = this.beanExpression.newInstance(argsOfDTO);
+
+    @SuppressWarnings("unchecked")
+    T dto = this.beanExpression != null ? this.beanExpression.newInstance(argsOfDTO) : (T) args[0];
 
     Tuple keys = this.keysQTuple.newInstance(Arrays.copyOfRange(args, beanPropCount, args.length));
 
@@ -98,8 +124,8 @@ public class QDTOWithKeys<T>
 
   @Override
   public String toString() {
-    return "QDTOWithKeys [beanExpression=" + this.beanExpression + ", keyQTuple=" + this.keysQTuple
-        + "]";
+    return "QDTOWithKeys [simpleExpression=" + this.simpleExpression + ", beanExpression="
+        + this.beanExpression + ", args=" + this.args + ", keysQTuple=" + this.keysQTuple + "]";
   }
 
 }

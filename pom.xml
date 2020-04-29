@@ -30,7 +30,7 @@
 
   <groupId>org.everit.persistence</groupId>
   <artifactId>org.everit.persistence.querydsl.dtoquery</artifactId>
-  <version>1.0.0-alpha1</version>
+  <version>1.1.0</version>
 
   <packaging>bundle</packaging>
 
@@ -89,9 +89,8 @@
               *
             </Import-Package>
             <Export-Package>
-              org.everit.persistence.querydsl.dtoquery;version="1.0.0"
+              org.everit.persistence.querydsl.dtoquery;version="1.1.0"
             </Export-Package>
-            <Embed-Dependency>org.everit.jdk.javaagent.shutdown</Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>

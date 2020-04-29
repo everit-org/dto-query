@@ -99,3 +99,75 @@ Using these functions, the code above can be reduced like this:
                               tableC.tableBId)))));
     
       Collection<TableADTO> tableACollection = dtoQuery.queryDTO(connection);
+
+
+### Using DTOWithKeys
+
+There are two helper classes to select props where the property type not
+necessarily contains the foreign key:
+
+ - QDTOWithKeys that can be used in the select part of the query.
+ - DTOWithKeys is the class that is polled if QDTOWithKeys is used
+   in the query.
+
+
+#### Using DTOWithKeys with SimpleExpression
+
+In the sample above, TableADTO has a Collection<String> property that should
+contain the list of TableB.tableBvc values:
+
+      DTOQueryTest.qdsl.execute((connection, configuration) -> {
+        QTableA tableA = QTableA.tableA;
+        QTableB tableB = QTableB.tableB;
+
+        DTOQuery<Object, TableAWithStringCollectionDTO> dtoQuery = DTOQuery
+            .root(new SQLQuery<>()
+                .select(Projections.fields(TableAWithStringCollectionDTO.class, tableA.all()))
+                .from(tableA)
+                .orderBy(tableA.tableAId.asc()))
+
+            .prop(new PropertyQuery<TableAWithStringCollectionDTO, Long, DTOWithKeys<String>>()
+                .oneToManySetter((aDTO, dtoWithKeys) -> aDTO.tableBVcList =
+                    dtoWithKeys.stream().map(e -> e.dto).collect(Collectors.toList()))
+                .keyInSourceDTOResolver((tableADTO) -> tableADTO.tableAId)
+                .keyInPropertyDTOResolver((dtoWithKeys) -> dtoWithKeys.keys.get(tableB.tableAId))
+                .dtoQuery(DTOQuery
+                    .create((Collection<Long> fks) -> new SQLQuery<>()
+                        .select(new QDTOWithKeys<>(tableB.tableBVc, tableB.tableAId))
+                        .from(tableB)
+                        .where(tableB.tableAId.in(fks))
+                        .orderBy(tableB.tableBId.asc()))
+
+                ));
+
+
+#### Using DTOWithKeys with a DTO
+
+It is also possible to select a property where the property type is
+a DTO but the DTO itself does not contain the foreign key. In the
+following sample, the tableB is selected with the help of DTOWithKeys,
+so the TableBDTO does not necessarily has to contain the tableAId:
+
+    DTOQuery<Object, TableADTO> dtoQuery = DTOQuery
+        .rootDTOFullTable(configuration, tableA, TableADTO.class)
+
+        .prop(new PropertyQuery<TableADTO, Long, DTOWithKeys<TableBDTO>>()
+            .oneToManySetter((aDTO, b) -> aDTO.tableBList =
+                b.stream().map(e -> e.dto).collect(Collectors.toList()))
+            .keyInSourceDTOResolver((tableADTO) -> tableADTO.tableAId)
+            .keyInPropertyDTOResolver((b) -> b.keys.get(tableB.tableAId))
+            .dtoQuery(
+                DTOQuery
+                    .create((Collection<Long> tableAIds) -> new SQLQuery<DTOWithKeys<TableBDTO>>(
+                        connection, configuration)
+                            .select(
+                                new QDTOWithKeys<>(
+                                    Projections.fields(TableBDTO.class, tableB.all()),
+                                    tableB.tableAId))
+                            .from(tableB).where(tableB.tableAId.in(tableAIds)))
+                    .prop(new PropertyQuery<DTOWithKeys<TableBDTO>, Long, TableCDTO>()
+                        .oneToManySetter((bDTO, cDTOList) -> bDTO.dto.tableCList = cDTOList)
+                        .keyInSourceDTOResolver(bDTO -> bDTO.dto.tableBId)
+                        .keyInPropertyDTOResolver((cDTO) -> cDTO.tableBId)
+                        .dtoQuery(DTOQuery.dtoFullTable(configuration, tableC, TableCDTO.class,
+                            tableC.tableBId)))));

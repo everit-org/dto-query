@@ -18,10 +18,14 @@ package org.everit.persistence.querydsl.dtoquery.test;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.everit.persistence.querydsl.dtoquery.DTOQuery;
+import org.everit.persistence.querydsl.dtoquery.DTOWithKeys;
 import org.everit.persistence.querydsl.dtoquery.PropertyQuery;
+import org.everit.persistence.querydsl.dtoquery.QDTOWithKeys;
 import org.everit.persistence.querydsl.dtoquery.test.beans.TableADTO;
+import org.everit.persistence.querydsl.dtoquery.test.beans.TableAWithStringCollectionDTO;
 import org.everit.persistence.querydsl.dtoquery.test.beans.TableBDTO;
 import org.everit.persistence.querydsl.dtoquery.test.beans.TableCDTO;
 import org.everit.persistence.querydsl.dtoquery.test.schema.QTableA;
@@ -240,6 +244,98 @@ public class DTOQueryTest {
                       .prop(new PropertyQuery<TableBDTO, Long, TableCDTO>()
                           .oneToManySetter((bDTO, cDTOList) -> bDTO.tableCList = cDTOList)
                           .keyInSourceDTOResolver(bDTO -> bDTO.tableBId)
+                          .keyInPropertyDTOResolver((cDTO) -> cDTO.tableBId)
+                          .dtoQuery(DTOQuery.dtoFullTable(configuration, tableC, TableCDTO.class,
+                              tableC.tableBId)))));
+
+      Collection<TableADTO> tableACollection = dtoQuery.queryDTO(connection);
+
+      Assert.assertEquals(testData.toString(), tableACollection.toString());
+
+    });
+  }
+
+  @Test
+  public void t03_testQDTOWitKeysWithSimpleExpression() {
+    Collection<TableADTO> testData = createTestData();
+    storeTestData(testData);
+
+    Collection<TableAWithStringCollectionDTO> actual =
+        DTOQueryTest.qdsl.execute((connection, configuration) -> {
+          QTableA tableA = QTableA.tableA;
+          QTableB tableB = QTableB.tableB;
+
+          DTOQuery<Object, TableAWithStringCollectionDTO> dtoQuery = DTOQuery
+              .root(new SQLQuery<>()
+                  .select(Projections.fields(TableAWithStringCollectionDTO.class, tableA.all()))
+                  .from(tableA)
+                  .orderBy(tableA.tableAId.asc()))
+
+              .prop(new PropertyQuery<TableAWithStringCollectionDTO, Long, DTOWithKeys<String>>()
+                  .oneToManySetter((aDTO, dtoWithKeys) -> aDTO.tableBVcList =
+                      dtoWithKeys.stream().map(e -> e.dto).collect(Collectors.toList()))
+                  .keyInSourceDTOResolver((tableADTO) -> tableADTO.tableAId)
+                  .keyInPropertyDTOResolver((dtoWithKeys) -> dtoWithKeys.keys.get(tableB.tableAId))
+                  .dtoQuery(DTOQuery
+                      .create((Collection<Long> fks) -> new SQLQuery<>()
+                          .select(new QDTOWithKeys<>(tableB.tableBVc, tableB.tableAId))
+                          .from(tableB)
+                          .where(tableB.tableAId.in(fks))
+                          .orderBy(tableB.tableBId.asc()))
+
+                  ));
+
+          return dtoQuery.queryDTO(connection);
+        });
+
+    Collection<TableAWithStringCollectionDTO> expected = new ArrayList<>();
+    for (TableADTO tableA : testData) {
+      TableAWithStringCollectionDTO tableAWithStringCollection =
+          new TableAWithStringCollectionDTO();
+      tableAWithStringCollection.tableAId = tableA.tableAId;
+      tableAWithStringCollection.tableAVc = tableA.tableAVc;
+
+      tableAWithStringCollection.tableBVcList =
+          tableA.tableBList.stream().map(e -> e.tableBVc).collect(Collectors.toList());
+
+      expected.add(tableAWithStringCollection);
+    }
+
+    Assert.assertEquals(expected.toString(), actual.toString());
+
+  }
+
+  @Test
+  public void t04_testDTOWithKeysWithBean() {
+    Collection<TableADTO> testData = createTestData();
+    storeTestData(testData);
+
+    DTOQueryTest.qdsl.execute((connection, configuration) -> {
+
+      QTableA tableA = QTableA.tableA;
+      QTableB tableB = QTableB.tableB;
+      QTableC tableC = QTableC.tableC;
+
+      DTOQuery<Object, TableADTO> dtoQuery = DTOQuery
+          .rootDTOFullTable(configuration, tableA, TableADTO.class)
+
+          .prop(new PropertyQuery<TableADTO, Long, DTOWithKeys<TableBDTO>>()
+              .oneToManySetter((aDTO, b) -> aDTO.tableBList =
+                  b.stream().map(e -> e.dto).collect(Collectors.toList()))
+              .keyInSourceDTOResolver((tableADTO) -> tableADTO.tableAId)
+              .keyInPropertyDTOResolver((b) -> b.keys.get(tableB.tableAId))
+              .dtoQuery(
+                  DTOQuery
+                      .create((Collection<Long> tableAIds) -> new SQLQuery<DTOWithKeys<TableBDTO>>(
+                          connection, configuration)
+                              .select(
+                                  new QDTOWithKeys<>(
+                                      Projections.fields(TableBDTO.class, tableB.all()),
+                                      tableB.tableAId))
+                              .from(tableB).where(tableB.tableAId.in(tableAIds)))
+                      .prop(new PropertyQuery<DTOWithKeys<TableBDTO>, Long, TableCDTO>()
+                          .oneToManySetter((bDTO, cDTOList) -> bDTO.dto.tableCList = cDTOList)
+                          .keyInSourceDTOResolver(bDTO -> bDTO.dto.tableBId)
                           .keyInPropertyDTOResolver((cDTO) -> cDTO.tableBId)
                           .dtoQuery(DTOQuery.dtoFullTable(configuration, tableC, TableCDTO.class,
                               tableC.tableBId)))));
