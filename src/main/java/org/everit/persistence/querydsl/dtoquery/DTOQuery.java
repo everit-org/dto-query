@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Function;
 
 import com.querydsl.core.types.Projections;
@@ -190,14 +191,25 @@ public class DTOQuery<FK, T> {
   }
 
   /**
-   * Runs the query on the database.
+   * Runs the query on the database. This function is suitable when the passed Querydsl query has
+   * already a connection applied.
+   *
+   * @return Collection of DTOs.
+   */
+  public Collection<T> queryDTO() {
+    return this.queryDTO(Optional.empty(), Collections.emptySet());
+  }
+
+  /**
+   * Runs the query on the database. When using this function, the passed conncetion will be used
+   * for database queries.
    *
    * @param connection
    *          The database connection.
    * @return Collection of DTOs.
    */
   public Collection<T> queryDTO(Connection connection) {
-    return this.queryDTO(connection, Collections.emptySet());
+    return this.queryDTO(Optional.of(connection), Collections.emptySet());
   }
 
   /**
@@ -209,23 +221,24 @@ public class DTOQuery<FK, T> {
    *          The foreign keys to filter in the query.
    * @return The collection of DTOs that were pulled out from the database.
    */
-  Collection<T> queryDTO(Connection connection, Collection<FK> foreignKeys) {
+  private Collection<T> queryDTO(Optional<Connection> connection, Collection<FK> foreignKeys) {
     SQLQuery<T> query = this.queryGenerator.apply(foreignKeys);
-    List<T> resultSet = query.clone(connection).fetch();
+    query = connection.isPresent() ? query.clone(connection.get()) : query;
+    List<T> resultSet = query.fetch();
 
     queryDTOProperties(connection, resultSet);
 
     return resultSet;
   }
 
-  private void queryDTOProperties(Connection connection, Collection<T> resultSet) {
+  private void queryDTOProperties(Optional<Connection> connection, Collection<T> resultSet) {
 
     for (PropertyQuery<T, ?, ?> propertyQuery : this.propertyQueries) {
       queryDTOProperty(connection, resultSet, propertyQuery);
     }
   }
 
-  private <PFK, P> void queryDTOProperty(Connection connection, Collection<T> dtos,
+  private <PFK, P> void queryDTOProperty(Optional<Connection> connection, Collection<T> dtos,
       PropertyQuery<T, PFK, P> propertyQuery) {
 
     Map<PFK, T> dtosByForeignKeys = new HashMap<>();

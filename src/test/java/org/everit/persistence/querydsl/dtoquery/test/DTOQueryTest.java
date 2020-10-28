@@ -347,4 +347,48 @@ public class DTOQueryTest {
     });
   }
 
+  @Test
+  public void t05_testQueryDTOLowLevelWithConnectionInQuery() {
+    Collection<TableADTO> testData = createTestData();
+    storeTestData(testData);
+
+    DTOQueryTest.qdsl.execute((connection, configuration) -> {
+
+      QTableA tableA = QTableA.tableA;
+      QTableB tableB = QTableB.tableB;
+      QTableC tableC = QTableC.tableC;
+
+      DTOQuery<Object, TableADTO> dtoQuery = DTOQuery
+          .root(new SQLQuery<>(connection, configuration)
+              .select(Projections.fields(TableADTO.class, tableA.all()))
+              .from(tableA)
+              .orderBy(tableA.tableAId.asc()))
+
+          .prop(new PropertyQuery<TableADTO, Long, TableBDTO>()
+              .oneToManySetter((aDTO, bDTOList) -> aDTO.tableBList = bDTOList)
+              .keyInSourceDTOResolver((tableADTO) -> tableADTO.tableAId)
+              .keyInPropertyDTOResolver((tableBDTO) -> tableBDTO.tableAId)
+              .dtoQuery(DTOQuery
+                  .create((Collection<Long> fks) -> new SQLQuery<>(connection, configuration)
+                      .select(Projections.fields(TableBDTO.class, tableB.all()))
+                      .from(tableB)
+                      .where(tableB.tableAId.in(fks))
+                      .orderBy(tableB.tableBId.asc()))
+
+                  .prop(new PropertyQuery<TableBDTO, Long, TableCDTO>()
+                      .oneToManySetter((bDTO, cDTOList) -> bDTO.tableCList = cDTOList)
+                      .keyInSourceDTOResolver(bDTO -> bDTO.tableBId)
+                      .keyInPropertyDTOResolver((cDTO) -> cDTO.tableBId)
+                      .dtoQuery(DTOQuery.create(fks -> new SQLQuery<>(connection, configuration)
+                          .select(Projections.fields(TableCDTO.class, tableC.all()))
+                          .from(tableC)
+                          .where(tableC.tableBId.in(fks))
+                          .orderBy(tableC.tableCId.asc()))))));
+
+      Collection<TableADTO> tableACollection = dtoQuery.queryDTO();
+
+      Assert.assertEquals(testData.toString(), tableACollection.toString());
+
+    });
+  }
 }

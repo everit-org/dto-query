@@ -30,7 +30,7 @@
 
   <groupId>org.everit.persistence</groupId>
   <artifactId>org.everit.persistence.querydsl.dtoquery</artifactId>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
 
   <packaging>bundle</packaging>
 
@@ -150,7 +150,7 @@
           <plugin>
             <groupId>com.querydsl</groupId>
             <artifactId>querydsl-maven-plugin</artifactId>
-            <version>4.2.2</version>
+            <version>4.4.0</version>
             <executions>
               <execution>
                 <goals>
@@ -181,7 +181,7 @@
     <dependency>
       <groupId>com.querydsl</groupId>
       <artifactId>querydsl-sql</artifactId>
-      <version>4.2.2</version>
+      <version>4.4.0</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
