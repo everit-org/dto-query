@@ -398,4 +398,63 @@ public class DTOQueryTest {
 
     Assert.assertTrue(tableBRecords.stream().allMatch(b -> b.tableA.tableAId == 0));
   }
+
+  @Test
+  public void t07_test_ManyToOneWithOneNullFK() {
+    QTableB qTableB = QTableB.tableB;
+
+    DTOQueryTest.qdsl.insert(qTableB).set(qTableB.tableBId, 0l).set(qTableB.tableBVc, "test")
+        .execute();
+
+    DTOQuery.root(DTOQueryTest.qdsl
+        .select(new QDTOWithKeys<>(
+            Projections.fields(ManyToOneTableBDTO.class, qTableB.tableBId, qTableB.tableBVc),
+            qTableB.tableAId))
+        .from(qTableB))
+        .prop(new PropertyQuery<DTOWithKeys<ManyToOneTableBDTO>, Long, ManyToOneTableADTO>()
+            .keyInSourceDTOResolver(s -> s.keys.get(qTableB.tableAId))
+            .keyInPropertyDTOResolver(p -> p.tableAId)
+            .setter((s, p) -> s.dto.tableA = p)
+            .dtoQuery(DTOQuery.create(tableAIds -> {
+              Assert
+                  .fail("In case of only null fks, dtoquery of property should not even be called");
+              return null;
+            })))
+        .queryDTO().stream().map(r -> r.dto).collect(Collectors.toList());
+  }
+
+  @Test
+  public void t08_test_ManyToOneWithNullFK() {
+    QTableA qTableA = QTableA.tableA;
+    QTableB qTableB = QTableB.tableB;
+
+    DTOQueryTest.qdsl.insert(qTableA).set(qTableA.tableAId, 0l).set(qTableA.tableAVc, "test")
+        .execute();
+
+    DTOQueryTest.qdsl.insert(qTableB).set(qTableB.tableBId, 0l).set(qTableB.tableBVc, "test")
+        .execute();
+
+    DTOQueryTest.qdsl.insert(qTableB).set(qTableB.tableBId, 1l).set(qTableB.tableBVc, "test")
+        .set(qTableB.tableAId, 0l).execute();
+
+    List<ManyToOneTableBDTO> tableBRecords = DTOQuery.root(DTOQueryTest.qdsl
+        .select(new QDTOWithKeys<>(
+            Projections.fields(ManyToOneTableBDTO.class, qTableB.tableBId, qTableB.tableBVc),
+            qTableB.tableAId))
+        .from(qTableB))
+        .prop(new PropertyQuery<DTOWithKeys<ManyToOneTableBDTO>, Long, ManyToOneTableADTO>()
+            .keyInSourceDTOResolver(s -> s.keys.get(qTableB.tableAId))
+            .keyInPropertyDTOResolver(p -> p.tableAId)
+            .setter((s, p) -> s.dto.tableA = p)
+            .dtoQuery(DTOQuery.create(tableAIds -> DTOQueryTest.qdsl.select(Projections
+                .fields(ManyToOneTableADTO.class, qTableA.tableAId, qTableA.tableAVc))
+                .from(qTableA)
+                .where(qTableA.tableAId.in(tableAIds)))))
+        .queryDTO().stream().map(r -> r.dto).collect(Collectors.toList());
+
+    Assert.assertEquals(1, tableBRecords.stream().filter(r -> r.tableA == null).count());
+
+    Assert.assertEquals(1,
+        tableBRecords.stream().filter(r -> r.tableA != null && r.tableA.tableAId == 0).count());
+  }
 }

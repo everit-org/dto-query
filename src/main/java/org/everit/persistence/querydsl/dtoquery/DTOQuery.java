@@ -229,7 +229,13 @@ public class DTOQuery<FK, T> {
     for (T result : dtos) {
       Function<T, PFK> keyInSourceResolver = propertyQuery.keyInSourceDTOResolver;
       PFK keyInSource = keyInSourceResolver.apply(result);
-      dtosByForeignKeys.computeIfAbsent(keyInSource, k -> new ArrayList<>()).add(result);
+      if (keyInSource != null) {
+        dtosByForeignKeys.computeIfAbsent(keyInSource, k -> new ArrayList<>()).add(result);
+      }
+    }
+
+    if (dtosByForeignKeys.isEmpty()) {
+      return;
     }
 
     Collection<P> properties =
