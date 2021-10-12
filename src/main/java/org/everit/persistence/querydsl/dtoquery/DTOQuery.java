@@ -15,7 +15,6 @@
  */
 package org.everit.persistence.querydsl.dtoquery;
 
-import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,14 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.function.Function;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.SimpleExpression;
-import com.querydsl.sql.Configuration;
 import com.querydsl.sql.RelationalPathBase;
 import com.querydsl.sql.SQLQuery;
+import com.querydsl.sql.SQLQueryFactory;
 
 /**
  * Queries a DTO class.
@@ -50,8 +48,8 @@ public class DTOQuery<FK, T> {
    *          another DTO.
    * @param <T>
    *          The type of the DTO.
-   * @param configuration
-   *          The Querydsl configuration.
+   * @param qdsl
+   *          The SQLQueryFactory of Querydsl to generate SQL queries.
    * @param qTable
    *          The Querydsl Q class of the table.
    * @param dtoType
@@ -60,11 +58,11 @@ public class DTOQuery<FK, T> {
    *          The path to the foreign key in the generated SQL.
    * @return The {@link DTOQuery} instance that can be further configured.
    */
-  public static <FK, T> DTOQuery<FK, T> beanFullTable(Configuration configuration,
+  public static <FK, T> DTOQuery<FK, T> beanFullTable(SQLQueryFactory qdsl,
       RelationalPathBase<?> qTable, Class<T> dtoType, SimpleExpression<FK> foreignKeyPath) {
 
     return DTOQuery.create(
-        (fks) -> new SQLQuery<T>(configuration).select(Projections.bean(dtoType, qTable.all()))
+        (fks) -> qdsl.select(Projections.bean(dtoType, qTable.all()))
             .from(qTable).where(foreignKeyPath.in(fks)));
   }
 
@@ -88,8 +86,8 @@ public class DTOQuery<FK, T> {
    *          another DTO.
    * @param <T>
    *          The type of the DTO.
-   * @param configuration
-   *          The Querydsl configuration.
+   * @param qdsl
+   *          The SQLQueryFactory of Querydsl to generate queries.
    * @param qTable
    *          The Querydsl Q class of the table.
    * @param dtoType
@@ -98,11 +96,11 @@ public class DTOQuery<FK, T> {
    *          The path to the foreign key in the generated SQL.
    * @return The {@link DTOQuery} instance that can be further configured.
    */
-  public static <FK, T> DTOQuery<FK, T> dtoFullTable(Configuration configuration,
+  public static <FK, T> DTOQuery<FK, T> dtoFullTable(SQLQueryFactory qdsl,
       RelationalPathBase<?> qTable, Class<T> dtoType, SimpleExpression<FK> foreignKeyPath) {
 
     return DTOQuery.create(
-        (fks) -> new SQLQuery<T>(configuration).select(Projections.fields(dtoType, qTable.all()))
+        (fks) -> qdsl.select(Projections.fields(dtoType, qTable.all()))
             .from(qTable).where(foreignKeyPath.in(fks)));
   }
 
@@ -126,8 +124,8 @@ public class DTOQuery<FK, T> {
    *
    * @param <T>
    *          The type of the DTO.
-   * @param configuration
-   *          The Querydsl configuration.
+   * @param qdsl
+   *          The SQLQueryFactory of Querydsl to generate queries.
    * @param qTable
    *          The Querydsl Q class of the table.
    * @param dtoType
@@ -135,11 +133,11 @@ public class DTOQuery<FK, T> {
    * @return The {@link DTOQuery} instance that can be further configured.
    */
   public static <T> DTOQuery<Object, T> rootBeanFullTable(
-      Configuration configuration, RelationalPathBase<?> qTable,
+      SQLQueryFactory qdsl, RelationalPathBase<?> qTable,
       Class<T> dtoType) {
 
     return DTOQuery
-        .root(new SQLQuery<>(configuration).select(Projections.bean(dtoType, qTable.all()))
+        .root(qdsl.select(Projections.bean(dtoType, qTable.all()))
             .from(qTable));
   }
 
@@ -148,8 +146,8 @@ public class DTOQuery<FK, T> {
    * from the table as is. This function can be used to select the root DTOs.
    *
    * @param <T>
-   *          The type of the DTO.
-   * @param configuration
+   *          The SQLQueryFactory of Querydsl to generate queries.
+   * @param qdsl
    *          The Querydsl configuration.
    * @param qTable
    *          The Querydsl Q class of the table.
@@ -157,12 +155,11 @@ public class DTOQuery<FK, T> {
    *          The type of the DTO that should be instantiated.
    * @return The {@link DTOQuery} instance that can be further configured.
    */
-  public static <T> DTOQuery<Object, T> rootDTOFullTable(
-      Configuration configuration, RelationalPathBase<?> qTable,
-      Class<T> dtoType) {
+  public static <T> DTOQuery<Object, T> rootDTOFullTable(SQLQueryFactory qdsl,
+      RelationalPathBase<?> qTable, Class<T> dtoType) {
 
     return DTOQuery
-        .root(new SQLQuery<>(configuration).select(Projections.fields(dtoType, qTable.all()))
+        .root(qdsl.select(Projections.fields(dtoType, qTable.all()))
             .from(qTable));
   }
 
@@ -197,19 +194,7 @@ public class DTOQuery<FK, T> {
    * @return Collection of DTOs.
    */
   public Collection<T> queryDTO() {
-    return this.queryDTO(Optional.empty(), Collections.emptySet());
-  }
-
-  /**
-   * Runs the query on the database. When using this function, the passed conncetion will be used
-   * for database queries.
-   *
-   * @param connection
-   *          The database connection.
-   * @return Collection of DTOs.
-   */
-  public Collection<T> queryDTO(Connection connection) {
-    return this.queryDTO(Optional.of(connection), Collections.emptySet());
+    return this.queryDTO(Collections.emptySet());
   }
 
   /**
@@ -221,35 +206,34 @@ public class DTOQuery<FK, T> {
    *          The foreign keys to filter in the query.
    * @return The collection of DTOs that were pulled out from the database.
    */
-  private Collection<T> queryDTO(Optional<Connection> connection, Collection<FK> foreignKeys) {
+  private Collection<T> queryDTO(Collection<FK> foreignKeys) {
     SQLQuery<T> query = this.queryGenerator.apply(foreignKeys);
-    query = connection.isPresent() ? query.clone(connection.get()) : query;
     List<T> resultSet = query.fetch();
 
-    queryDTOProperties(connection, resultSet);
+    queryDTOProperties(resultSet);
 
     return resultSet;
   }
 
-  private void queryDTOProperties(Optional<Connection> connection, Collection<T> resultSet) {
+  private void queryDTOProperties(Collection<T> resultSet) {
 
     for (PropertyQuery<T, ?, ?> propertyQuery : this.propertyQueries) {
-      queryDTOProperty(connection, resultSet, propertyQuery);
+      queryDTOProperty(resultSet, propertyQuery);
     }
   }
 
-  private <PFK, P> void queryDTOProperty(Optional<Connection> connection, Collection<T> dtos,
+  private <PFK, P> void queryDTOProperty(Collection<T> dtos,
       PropertyQuery<T, PFK, P> propertyQuery) {
 
-    Map<PFK, T> dtosByForeignKeys = new HashMap<>();
+    Map<PFK, Collection<T>> dtosByForeignKeys = new HashMap<>();
     for (T result : dtos) {
       Function<T, PFK> keyInSourceResolver = propertyQuery.keyInSourceDTOResolver;
       PFK keyInSource = keyInSourceResolver.apply(result);
-      dtosByForeignKeys.put(keyInSource, result);
+      dtosByForeignKeys.computeIfAbsent(keyInSource, k -> new ArrayList<>()).add(result);
     }
 
     Collection<P> properties =
-        propertyQuery.dtoQuery.queryDTO(connection, dtosByForeignKeys.keySet());
+        propertyQuery.dtoQuery.queryDTO(dtosByForeignKeys.keySet());
 
     Map<PFK, Collection<P>> propertyCollectionByForeignKeyMap = new HashMap<>();
     Function<P, PFK> keyInPropertyResolver = propertyQuery.keyInPropertyResolver;
@@ -276,35 +260,34 @@ public class DTOQuery<FK, T> {
     return this;
   }
 
-  private <PFK, P> void setPropertiesInDTOs(Map<PFK, T> dtosByForeignKeys,
+  private <PFK, P> void setPropertiesInDTOs(Map<PFK, Collection<T>> dtosByForeignKeys,
       Map<PFK, Collection<P>> propertyCollectionByForeignKeyMap,
       PropertyQuery<T, PFK, P> propertyQuery) {
 
-    for (Entry<PFK, T> dtoEntry : dtosByForeignKeys.entrySet()) {
+    for (Entry<PFK, Collection<T>> dtoEntry : dtosByForeignKeys.entrySet()) {
       PFK foreignKey = dtoEntry.getKey();
-      T dto = dtoEntry.getValue();
-
-      if (dto == null) {
-        throw new NullPointerException("No DTO found for foreign key: " + foreignKey.toString());
-      }
-
-      Collection<P> propertyCollection = propertyCollectionByForeignKeyMap.get(foreignKey);
-      if (propertyCollection != null) {
-        if (propertyQuery.setter != null) {
-          // There is at least one element at this point otherwise the propertyCollection would be
-          // null
-          if (propertyCollection.size() > 1) {
+      for (T dto : dtoEntry.getValue()) {
+        Collection<P> propertyCollection = propertyCollectionByForeignKeyMap.get(foreignKey);
+        if (propertyCollection != null) {
+          if (propertyQuery.setter == null && propertyQuery.oneToManySetter == null) {
             throw new IllegalArgumentException(
-                "More than one property found for foreign key: " + foreignKey);
+                "No setter defined for property query: " + propertyQuery.toString());
           }
 
-          P prop = propertyCollection.iterator().next();
-          propertyQuery.setter.accept(dto, prop);
-        } else if (propertyQuery.oneToManySetter != null) {
-          propertyQuery.oneToManySetter.accept(dto, propertyCollection);
-        } else {
-          throw new IllegalArgumentException(
-              "No setter defined for property query: " + propertyQuery.toString());
+          if (propertyQuery.setter != null) {
+            // There is at least one element at this point otherwise the propertyCollection would be
+            // null
+            if (propertyCollection.size() > 1) {
+              throw new IllegalArgumentException(
+                  "More than one property found for foreign key: " + foreignKey);
+            }
+
+            P prop = propertyCollection.iterator().next();
+            propertyQuery.setter.accept(dto, prop);
+          }
+          if (propertyQuery.oneToManySetter != null) {
+            propertyQuery.oneToManySetter.accept(dto, propertyCollection);
+          }
         }
       }
     }
